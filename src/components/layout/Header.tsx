@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 interface HeaderProps {
-  onNewAppointment: () => void;
+  onNewAppointment?: () => void;
 }
 
 export const Header = ({ onNewAppointment }: HeaderProps) => {

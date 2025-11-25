@@ -1,9 +1,10 @@
-import { Calendar, Users, DollarSign, Package, FileText, ClipboardList, BarChart3, Settings } from "lucide-react";
+import { Calendar, Users, DollarSign, Package, FileText, ClipboardList, BarChart3, Settings, DoorOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
   { icon: Calendar, label: "Agenda", path: "/" },
+  { icon: DoorOpen, label: "Salas", path: "/salas" },
   { icon: Users, label: "Pacientes", path: "/pacientes" },
   { icon: DollarSign, label: "Finanças", path: "/financas" },
   { icon: Package, label: "Estoque", path: "/estoque" },
