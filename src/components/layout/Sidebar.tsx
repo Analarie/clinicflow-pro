@@ -1,6 +1,9 @@
-import { Calendar, Users, DollarSign, Package, FileText, ClipboardList, BarChart3, Settings, DoorOpen } from "lucide-react";
+import { Calendar, Users, DollarSign, Package, FileText, ClipboardList, BarChart3, Settings, DoorOpen, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const menuItems = [
   { icon: Calendar, label: "Agenda", path: "/" },
@@ -15,6 +18,12 @@ const menuItems = [
 ];
 
 export const Sidebar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    navigate("/login");
+  };
+
   return (
     <aside className="w-64 bg-background border-r border-border flex flex-col">
       <div className="p-4 border-b border-border">
@@ -24,6 +33,25 @@ export const Sidebar = () => {
           </div>
           <span className="font-semibold text-lg">Clínica Zen Flow</span>
         </div>
+      </div>
+
+      <div className="p-4 border-b border-border">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 h-auto py-3 px-2"
+          onClick={() => navigate("/perfil")}
+        >
+          <Avatar className="w-10 h-10">
+            <AvatarImage src="" />
+            <AvatarFallback className="bg-primary/10 text-primary">
+              RP
+            </AvatarFallback>
+          </Avatar>
+          <div className="text-left flex-1">
+            <p className="text-sm font-medium">Dr. Rodrigo Peixoto</p>
+            <p className="text-xs text-muted-foreground">Ver perfil</p>
+          </div>
+        </Button>
       </div>
       
       <nav className="flex-1 py-4">
@@ -39,6 +67,17 @@ export const Sidebar = () => {
           </NavLink>
         ))}
       </nav>
+
+      <div className="p-4 border-t border-border">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={handleLogout}
+        >
+          <LogOut className="mr-3 h-5 w-5" />
+          Sair
+        </Button>
+      </div>
     </aside>
   );
 };
