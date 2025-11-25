@@ -3,13 +3,16 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Payment, Expense } from "@/types/finance";
-import { Plus, DollarSign, TrendingUp, TrendingDown, CreditCard } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, TrendingDown, CreditCard, Filter } from "lucide-react";
 import { PaymentDialog } from "@/components/finance/PaymentDialog";
 import { ExpenseDialog } from "@/components/finance/ExpenseDialog";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 const mockPayments: Payment[] = [
   {
@@ -62,16 +65,50 @@ const Financas = () => {
   const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState<string>("all");
+  const [customStartDate, setCustomStartDate] = useState<Date>();
+  const [customEndDate, setCustomEndDate] = useState<Date>();
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const totalReceived = payments
+  const filterByDate = (date: Date) => {
+    if (dateFilter === "all") return true;
+    
+    const now = new Date();
+    
+    if (dateFilter === "today") {
+      return date.toDateString() === now.toDateString();
+    } else if (dateFilter === "month") {
+      return isWithinInterval(date, { start: startOfMonth(now), end: endOfMonth(now) });
+    } else if (dateFilter === "year") {
+      return isWithinInterval(date, { start: startOfYear(now), end: endOfYear(now) });
+    } else if (dateFilter === "custom" && customStartDate && customEndDate) {
+      return isWithinInterval(date, { start: customStartDate, end: customEndDate });
+    }
+    
+    return true;
+  };
+
+  const filteredPayments = payments.filter(p => {
+    const dateMatch = filterByDate(p.date);
+    const statusMatch = statusFilter === "all" || p.status === statusFilter;
+    return dateMatch && statusMatch;
+  });
+
+  const filteredExpenses = expenses.filter(e => {
+    const dateMatch = filterByDate(e.date);
+    const statusMatch = statusFilter === "all" || e.status === statusFilter;
+    return dateMatch && statusMatch;
+  });
+
+  const totalReceived = filteredPayments
     .filter(p => p.status === 'paid')
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const totalPending = payments
+  const totalPending = filteredPayments
     .filter(p => p.status === 'pending')
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const totalExpenses = expenses
+  const totalExpenses = filteredExpenses
     .filter(e => e.status === 'paid')
     .reduce((sum, e) => sum + e.amount, 0);
 
@@ -117,6 +154,67 @@ const Financas = () => {
           <div className="max-w-7xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-bold">Finanças</h1>
+              
+              <div className="flex items-center gap-2">
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <Filter className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os períodos</SelectItem>
+                    <SelectItem value="today">Hoje</SelectItem>
+                    <SelectItem value="month">Este mês</SelectItem>
+                    <SelectItem value="year">Este ano</SelectItem>
+                    <SelectItem value="custom">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {dateFilter === "custom" && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline">
+                        {customStartDate && customEndDate
+                          ? `${format(customStartDate, "dd/MM")} - ${format(customEndDate, "dd/MM")}`
+                          : "Selecionar datas"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <div className="p-4 space-y-4">
+                        <div>
+                          <p className="text-sm font-medium mb-2">Data inicial</p>
+                          <Calendar
+                            mode="single"
+                            selected={customStartDate}
+                            onSelect={setCustomStartDate}
+                            locale={ptBR}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium mb-2">Data final</p>
+                          <Calendar
+                            mode="single"
+                            selected={customEndDate}
+                            onSelect={setCustomEndDate}
+                            locale={ptBR}
+                          />
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="paid">Pagos</SelectItem>
+                    <SelectItem value="pending">Pendentes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -176,7 +274,7 @@ const Financas = () => {
                 </div>
 
                 <div className="space-y-2">
-                  {payments.map((payment) => (
+                  {filteredPayments.map((payment) => (
                     <div
                       key={payment.id}
                       className="bg-card border border-border rounded-lg p-4"
@@ -218,7 +316,7 @@ const Financas = () => {
                 </div>
 
                 <div className="space-y-2">
-                  {expenses.map((expense) => (
+                  {filteredExpenses.map((expense) => (
                     <div
                       key={expense.id}
                       className="bg-card border border-border rounded-lg p-4"

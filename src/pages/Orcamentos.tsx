@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, Download, Eye } from "lucide-react";
+import { Plus, FileText, Download, Eye, Filter } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format } from "date-fns";
+import { format, isWithinInterval, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -54,6 +54,9 @@ const Orcamentos = () => {
   const [services, setServices] = useState([{ description: "", quantity: 1, price: 0 }]);
   const [patientName, setPatientName] = useState("");
   const [validDays, setValidDays] = useState("15");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const addService = () => {
     setServices([...services, { description: "", quantity: 1, price: 0 }]);
@@ -118,6 +121,23 @@ const Orcamentos = () => {
     return labels[status] || status;
   };
 
+  const filteredBudgets = budgets.filter(budget => {
+    const statusMatch = statusFilter === "all" || budget.status === statusFilter;
+    const searchMatch = searchQuery === "" || 
+      budget.patientName.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    let dateMatch = true;
+    if (dateFilter === "month") {
+      const now = new Date();
+      dateMatch = isWithinInterval(budget.date, { 
+        start: startOfMonth(now), 
+        end: endOfMonth(now) 
+      });
+    }
+    
+    return statusMatch && searchMatch && dateMatch;
+  });
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
@@ -127,16 +147,51 @@ const Orcamentos = () => {
         
         <div className="flex-1 overflow-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold">Orçamentos</h1>
-              <Button onClick={() => setIsDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Orçamento
-              </Button>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold">Orçamentos</h1>
+                <Button onClick={() => setIsDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Orçamento
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Buscar por paciente..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="max-w-xs"
+                />
+                
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <Filter className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="draft">Rascunho</SelectItem>
+                    <SelectItem value="sent">Enviado</SelectItem>
+                    <SelectItem value="approved">Aprovado</SelectItem>
+                    <SelectItem value="rejected">Rejeitado</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os períodos</SelectItem>
+                    <SelectItem value="month">Este mês</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid gap-4">
-              {budgets.map((budget) => (
+              {filteredBudgets.map((budget) => (
                 <div
                   key={budget.id}
                   className="bg-card border border-border rounded-lg p-4"
@@ -188,9 +243,9 @@ const Orcamentos = () => {
               ))}
             </div>
 
-            {budgets.length === 0 && (
+            {filteredBudgets.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
-                <p>Nenhum orçamento criado</p>
+                <p>Nenhum orçamento encontrado</p>
               </div>
             )}
           </div>
